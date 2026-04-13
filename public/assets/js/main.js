@@ -1642,17 +1642,22 @@
                         messageDiv.innerHTML = '';
                         messageDiv.className = 'message';
                     }
-                    form.querySelectorAll('.input-group').forEach(group => group.classList.remove('has-value'));
-                    form.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
-                        wrapper.classList.remove('has-value');
-                        wrapper.classList.remove('open');
-                        const triggerSpan = wrapper.querySelector('.custom-select-trigger span');
-                        if (triggerSpan) {
-                            triggerSpan.innerText = '';
-                            triggerSpan.removeAttribute('data-i18n');
-                        }
-                        wrapper.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                    // Explicitly reset all native <select> elements to their placeholder
+                    form.querySelectorAll('select').forEach(select => {
+                        select.value = '';
+                        select.selectedIndex = 0;
                     });
+                    form.querySelectorAll('.input-group').forEach(group => group.classList.remove('has-value'));
+                    // Unwrap custom select wrappers and re-initialize fresh
+                    form.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
+                        const select = wrapper.querySelector('select');
+                        if (select) {
+                            wrapper.parentNode.insertBefore(select, wrapper);
+                            select.style.display = '';
+                            wrapper.remove();
+                        }
+                    });
+                    initializeCustomSelects();
                 }
 
                 function resetTransferForm() {
