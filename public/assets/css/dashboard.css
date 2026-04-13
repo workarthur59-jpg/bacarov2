@@ -1952,6 +1952,17 @@ input[type=number] {
 			text-shadow: 0 0 10px rgba(107, 166, 79, 0.2);
 		}
 
+		/* --- Goal Card Top Row Layout --- */
+		.goal-card-top-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 15px;
+			position: relative;
+			z-index: 2;
+			width: 100%;
+		}
+
 		/* --- Lucide Category Icon (replaces emoji) --- */
 		.card-category-icon {
 			width: 44px;
@@ -1962,10 +1973,8 @@ input[type=number] {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			position: absolute;
-			top: 20px;
-			left: 20px;
 			transition: all 0.3s ease;
+			flex-shrink: 0;
 		}
 
 		.card-category-icon svg,
@@ -1991,7 +2000,7 @@ input[type=number] {
 			color: #8cc36a;
 		}
 
-		/* --- Card Delete Button (Goal-specific) --- */
+		/* --- Card Delete Button (Goal-specific — outside right) --- */
 		.goal-card-premium .card-delete-btn {
 			position: absolute;
 			top: 12px;
@@ -2025,11 +2034,9 @@ input[type=number] {
 			transform: scale(1.1);
 		}
 
-		/* --- Status Badge (Goal-specific overrides) --- */
+		/* --- Status Badge (Goal-specific overrides — inside top row) --- */
 		.goal-card-premium .card-status-badge {
-			position: absolute;
-			top: 20px;
-			right: 20px;
+			position: static;
 			padding: 4px 10px;
 			border-radius: 20px;
 			font-size: 0.6em;
@@ -2040,10 +2047,60 @@ input[type=number] {
 			border: none;
 			backdrop-filter: none;
 			gap: 0;
+			white-space: nowrap;
+			transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		}
+
+		/* Shift the status badge left beautifully so it NEVER overlaps with the delete button on hover */
+		.goal-card-premium:hover .card-status-badge {
+			transform: translateX(-35px);
 		}
 
 		.goal-card-premium .card-status-badge::before {
 			display: none;
+		}
+
+		/* --- Goal card content: flow layout instead of absolute --- */
+		.goal-card-premium .card-content {
+			position: static;
+			width: 100%;
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		/* --- Completed Goal Styling --- */
+		.goal-completed {
+			border-color: rgba(41, 128, 185, 0.25) !important;
+		}
+
+		.goal-completed .progress-bar-fill {
+			background: linear-gradient(90deg, #2980b9, #5dade2) !important;
+		}
+
+		.goal-completed-badge {
+			margin-top: 18px;
+			background: linear-gradient(135deg, rgba(41, 128, 185, 0.1), rgba(93, 173, 226, 0.08));
+			color: #2980b9;
+			border: 1.5px solid rgba(41, 128, 185, 0.2);
+			padding: 10px 14px;
+			border-radius: 12px;
+			font-size: 0.82em;
+			font-weight: 800;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			width: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			text-align: center;
+		}
+
+		body.dark-mode .goal-completed-badge {
+			background: rgba(41, 128, 185, 0.15);
+			color: #85c1e9;
+			border-color: rgba(41, 128, 185, 0.25);
 		}
 
 		.status-on-track { background: #e6f7ed; color: #27ae60; }

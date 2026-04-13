@@ -1929,13 +1929,17 @@ function renderGoals() {
         const priorityLabels = { 1: 'Low', 2: 'Medium', 3: 'High' };
         const priorityLabel = priorityLabels[priorityLevel] || 'Low';
 
+        const isCompleted = current >= target;
+
         return `
-            <div class="card-item goal-card-premium" onclick="openGoalDetails(${g.goal_id})">
+            <div class="card-item goal-card-premium ${isCompleted ? 'goal-completed' : ''}" onclick="openGoalDetails(${g.goal_id})">
                 <button class="card-delete-btn" onclick="event.stopPropagation(); handleDeleteGoal(${g.goal_id}, '${escapeHtml(g.title)}')">
                     <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
                 </button>
-                <div class="card-category-icon"><i data-lucide="${iconName}"></i></div>
-                <div class="card-status-badge ${status.class}">${dict(status.labelKey)}</div>
+                <div class="goal-card-top-row">
+                    <div class="card-category-icon"><i data-lucide="${iconName}"></i></div>
+                    <div class="card-status-badge ${status.class}">${dict(status.labelKey)}</div>
+                </div>
                 <div class="card-content">
                     <h3 class="card-name">${escapeHtml(g.title)}</h3>
                     <div class="goal-priority-indicator priority-${priorityLabel.toLowerCase()}">
@@ -1953,9 +1957,15 @@ function renderGoals() {
                     <div class="goal-meta-info">
                         ${monthlyTarget > 0 ? `<span><i data-lucide="calendar" style="width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px;"></i>Target: ${formatCurrency(monthlyTarget)}/mo</span>` : ''}
                     </div>
+                    ${!isCompleted ? `
                     <button class="goal-card-add-funds" onclick="event.stopPropagation(); window.openAddFundsModal(${g.goal_id})" data-i18n="btn_add_funds">
                         <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> ${dict('Add Funds')}
                     </button>
+                    ` : `
+                    <div class="goal-completed-badge">
+                        <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> ${dict('Goal Achieved!')}
+                    </div>
+                    `}
                 </div>
             </div>
         `;
