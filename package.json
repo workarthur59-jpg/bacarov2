@@ -1,0 +1,14 @@
+{
+  "name": "bacaro-manager",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Standard build'"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "bcrypt": "^5.1.1",
+    "nodemailer": "^6.10.1"
+  }
+}
