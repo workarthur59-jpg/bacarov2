@@ -1963,6 +1963,12 @@ input[type=number] {
 			width: 100%;
 		}
 
+		.goal-card-top-actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
 		/* --- Lucide Category Icon (replaces emoji) --- */
 		.card-category-icon {
 			width: 44px;
@@ -2000,12 +2006,9 @@ input[type=number] {
 			color: #8cc36a;
 		}
 
-		/* --- Card Delete Button (Goal-specific — outside right) --- */
+		/* --- Card Delete Button (Goal-specific — inside top row) --- */
 		.goal-card-premium .card-delete-btn {
-			position: absolute;
-			top: 12px;
-			right: -40px;
-			left: auto;
+			position: static;
 			width: 30px;
 			height: 30px;
 			border-radius: 8px;
@@ -2020,10 +2023,10 @@ input[type=number] {
 			z-index: 5;
 			opacity: 0;
 			font-size: inherit;
+			flex-shrink: 0;
 		}
 
 		.goal-card-premium:hover .card-delete-btn {
-			right: 12px;
 			opacity: 1;
 		}
 
@@ -2048,12 +2051,6 @@ input[type=number] {
 			backdrop-filter: none;
 			gap: 0;
 			white-space: nowrap;
-			transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-		}
-
-		/* Shift the status badge left beautifully so it NEVER overlaps with the delete button on hover */
-		.goal-card-premium:hover .card-status-badge {
-			transform: translateX(-35px);
 		}
 
 		.goal-card-premium .card-status-badge::before {
@@ -2079,7 +2076,7 @@ input[type=number] {
 		}
 
 		.goal-completed-badge {
-			margin-top: 18px;
+			margin-top: auto;
 			background: linear-gradient(135deg, rgba(41, 128, 185, 0.1), rgba(93, 173, 226, 0.08));
 			color: #2980b9;
 			border: 1.5px solid rgba(41, 128, 185, 0.2);
@@ -5103,7 +5100,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 
 		/* Goal Card Action Button */
 		.goal-card-add-funds {
-			margin-top: 18px;
+			margin-top: auto;
 			background: rgba(89, 133, 57, 0.08);
 			color: var(--primary-green);
 			border: 1.5px solid rgba(89, 133, 57, 0.15);

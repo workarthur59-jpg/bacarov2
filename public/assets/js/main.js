@@ -1933,12 +1933,14 @@ function renderGoals() {
 
         return `
             <div class="card-item goal-card-premium ${isCompleted ? 'goal-completed' : ''}" onclick="openGoalDetails(${g.goal_id})">
-                <button class="card-delete-btn" onclick="event.stopPropagation(); handleDeleteGoal(${g.goal_id}, '${escapeHtml(g.title)}')">
-                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                </button>
                 <div class="goal-card-top-row">
                     <div class="card-category-icon"><i data-lucide="${iconName}"></i></div>
-                    <div class="card-status-badge ${status.class}">${dict(status.labelKey)}</div>
+                    <div class="goal-card-top-actions">
+                        <div class="card-status-badge ${status.class}">${dict(status.labelKey)}</div>
+                        <button class="card-delete-btn" onclick="event.stopPropagation(); handleDeleteGoal(${g.goal_id}, '${escapeHtml(g.title)}')">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-content">
                     <h3 class="card-name">${escapeHtml(g.title)}</h3>
