@@ -2051,6 +2051,7 @@ input[type=number] {
 			backdrop-filter: none;
 			gap: 0;
 			white-space: nowrap;
+			display: inline-flex;
 		}
 
 		.goal-card-premium .card-status-badge::before {
@@ -2077,6 +2078,7 @@ input[type=number] {
 
 		.goal-completed-badge {
 			margin-top: auto;
+			margin-bottom: 4px;
 			background: linear-gradient(135deg, rgba(41, 128, 185, 0.1), rgba(93, 173, 226, 0.08));
 			color: #2980b9;
 			border: 1.5px solid rgba(41, 128, 185, 0.2);
@@ -2092,6 +2094,7 @@ input[type=number] {
 			justify-content: center;
 			gap: 8px;
 			text-align: center;
+			box-sizing: border-box;
 		}
 
 		body.dark-mode .goal-completed-badge {
@@ -5101,6 +5104,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 		/* Goal Card Action Button */
 		.goal-card-add-funds {
 			margin-top: auto;
+			margin-bottom: 4px;
 			background: rgba(89, 133, 57, 0.08);
 			color: var(--primary-green);
 			border: 1.5px solid rgba(89, 133, 57, 0.15);
@@ -5117,6 +5121,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 			align-items: center;
 			justify-content: center;
 			gap: 8px;
+			box-sizing: border-box;
 		}
 		
 		.goal-card-add-funds:hover {
