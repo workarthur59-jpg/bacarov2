@@ -383,6 +383,7 @@
             if (container) container.style.display = 'none';
 
 			try {
+				await new Promise(r => setTimeout(r, 500)); // Premium UX delay
 				const res = await fetch('/api/wallets', {
 					headers: { Authorization: `Bearer ${getToken()}` }
 				});
@@ -1561,14 +1562,13 @@
 		};
 		async function loadTransactions() {
 			if (!isAuthenticated()) return;
-			const listEl = document.getElementById('transaction-list-items');
             const skeleton = document.getElementById('transaction-skeleton-list');
-			if (!listEl) return;
-
+            const listEl = document.getElementById('transaction-list-items');
             if (skeleton) skeleton.style.display = 'block';
-            listEl.style.display = 'none';
+            if (listEl) listEl.style.display = 'none';
 
 			try {
+				await new Promise(r => setTimeout(r, 500)); // Premium UX delay
 				const res = await fetch('/api/transactions', {
 					headers: {
 						Authorization: `Bearer ${getToken()}`
