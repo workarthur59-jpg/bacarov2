@@ -2051,6 +2051,13 @@ window.handleDeleteGoal = async function(goalId, title) {
 };
 
 		document.addEventListener('DOMContentLoaded', function() {
+			// Enforce stat card skeletons regardless of HTML cache
+			const statCards = document.querySelectorAll('.stat-card .stat-value');
+			statCards.forEach(el => {
+				const isBalance = el.closest('.wallet-card') !== null;
+				el.innerHTML = `<div class="skeleton skeleton-text" style="height: ${isBalance ? '40px' : '30px'}; width: 100%;${isBalance ? ' background: rgba(255,255,255,0.1);' : ''}"></div>`;
+			});
+
 			if(window.applyTranslations) window.applyTranslations();
 			applyThemeSettings();
 			initializeSettingsPanel();
