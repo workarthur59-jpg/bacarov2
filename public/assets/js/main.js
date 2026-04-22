@@ -3093,6 +3093,7 @@ function renderDashboardChart(transactions) {
     if (!container || !wrapper || !canvas) return;
 
     const expenseData = transactions.filter(t => t.type === 'Expense');
+    const totalExpense = expenseData.reduce((sum, t) => sum + Number(t.amount), 0);
     const categories = {};
     expenseData.forEach(t => {
         const label = t.wallet_type || 'Other';
@@ -3104,25 +3105,52 @@ function renderDashboardChart(transactions) {
 
     if (dashboardChartInstance) dashboardChartInstance.destroy();
 
+    // Center-text plugin to show total expense inside the donut
+    const donutCenterPlugin = {
+        id: 'donutCenterText',
+        afterDraw(chart) {
+            if (chart.config.type !== 'doughnut') return;
+            const { ctx, chartArea: { top, bottom, left, right } } = chart;
+            const cx = (left + right) / 2;
+            const cy = (top + bottom) / 2;
+            const isDark = document.body.classList.contains('dark-mode');
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 13px Inter, system-ui, sans-serif';
+            ctx.fillStyle = isDark ? 'rgba(237,241,238,0.5)' : 'rgba(55,71,56,0.45)';
+            ctx.fillText('TOTAL', cx, cy - 14);
+            ctx.font = 'bold 16px Inter, system-ui, sans-serif';
+            ctx.fillStyle = isDark ? '#edf1ee' : '#1a241b';
+            ctx.fillText(formatCurrency(totalExpense), cx, cy + 6);
+            ctx.restore();
+        }
+    };
+
     if (amounts.length > 0) {
         dashboardChartInstance = new Chart(canvas, {
             type: 'doughnut',
+            plugins: [donutCenterPlugin],
             data: {
                 labels: labels,
                 datasets: [{
                     data: amounts,
                     backgroundColor: ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fab1a0'],
-                    borderWidth: 0
+                    borderWidth: 3,
+                    borderColor: document.body.classList.contains('dark-mode') ? '#1e2420' : '#f4f7f4',
+                    hoverOffset: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '65%',
                 plugins: {
                     legend: { 
                         position: 'bottom', 
                         labels: { 
-                            boxWidth: 12, 
+                            boxWidth: 10,
+                            padding: 12,
                             font: { size: 11 },
                             color: document.body.classList.contains('dark-mode') ? '#edf1ee' : '#1a241b'
                         } 
@@ -3340,10 +3368,11 @@ function renderCashFlowChart(transactions) {
                         },
                         ticks: { 
                             color: document.body.classList.contains('dark-mode') ? '#edf1ee' : '#1a241b',
-							font: { weight: '700', size: window.innerWidth < 640 ? 10 : 12 },
-							maxRotation: 0,
+							font: { weight: '600', size: window.innerWidth < 640 ? 9 : 11 },
+							maxRotation: 45,
+							minRotation: 0,
 							autoSkip: true,
-							maxTicksLimit: window.innerWidth < 640 ? 6 : 10
+							maxTicksLimit: window.innerWidth < 640 ? 5 : 8
                         }
                     },
                     y: {
