@@ -6,9 +6,9 @@
 
 	<link rel="stylesheet" href="/assets/css/global.css?v=4">
 	<link rel="stylesheet" href="/assets/css/kwarta_ai.css?v=4">
-	<link rel="stylesheet" href="/assets/css/dashboard.css?v=5">
+	<link rel="stylesheet" href="/assets/css/dashboard.css?v=6">
 	<script src="/assets/js/i18n.js?v=2"></script>
-	<script src="/assets/js/main.js?v=6"></script>
+	<script src="/assets/js/main.js?v=7"></script>
 	<script src="/assets/js/kwarta-ai.js?v=5" defer=""></script>
 
 	<!-- Premium AI Libraries -->
@@ -863,6 +863,7 @@
 					<h2 class="header login-header" data-i18n="str_a99fe580">New Transaction</h2>
 					<form class="login-form" id="transaction-form">
 						<input type="hidden" id="trans-id">
+						<input type="hidden" id="trans-goal-id">
 						<div class="input-group">
 							<input type="text" class="floating-input" id="trans-description" placeholder=" " required="">
 							<label class="floating-label" data-i18n="str_b5a7adde">Description</label>
@@ -892,6 +893,21 @@
 						<div class="input-group" id="trans-wallet-other-group" style="display:none;">
 							<input type="text" class="floating-input" id="trans-wallet-other" placeholder=" ">
 							<label class="floating-label" data-i18n="str_3da690d3">Wallet (Other)</label>
+						</div>
+
+						<!-- Goal progress info panel — shown when a goal is selected -->
+						<div id="trans-goal-info" style="display:none;" class="goal-tx-info">
+							<div class="goal-tx-header">
+								<span class="goal-tx-icon">🎯</span>
+								<span id="trans-goal-progress-text" class="goal-tx-label"></span>
+							</div>
+							<div class="progress-bar-container" style="margin: 8px 0 4px;">
+								<div class="progress-bar-fill" id="trans-goal-progress-bar" style="width: 0%;">
+									<span class="progress-bar-label" id="trans-goal-progress-pct">0%</span>
+								</div>
+							</div>
+							<div class="goal-tx-remaining" id="trans-goal-remaining"></div>
+							<div class="goal-tx-note">This transaction amount will be applied to your goal progress.</div>
 						</div>
 
 						<div class="input-group">

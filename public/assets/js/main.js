@@ -498,7 +498,12 @@
 			
 			const transWallet = document.getElementById('trans-wallet-type');
 			if (transWallet) {
-				transWallet.innerHTML = `<option value="" selected disabled hidden></option>${options}<option value="Other">Other</option>`;
+				const activeGoals = (window.goals || []).filter(g => Number(g.current_amount || 0) < Number(g.target_amount || 0));
+				const walletOptgroup = options ? `<optgroup label="Wallets">${options}</optgroup>` : options;
+				const goalOpts = activeGoals.length > 0
+					? `<optgroup label="Savings Goals">${activeGoals.map(g => `<option value="goal__${g.goal_id}" data-goal-id="${g.goal_id}">${escapeHtml(g.title)}</option>`).join('')}</optgroup>`
+					: '';
+				transWallet.innerHTML = `<option value="" selected disabled hidden></option>${walletOptgroup}${goalOpts}<option value="Other">Other</option>`;
 			}
 
 			// Dashboard wallet filter dropdown
@@ -1539,7 +1544,19 @@
 
 			const walletTypeSelect = document.getElementById('trans-wallet-type');
 			const customWallets = ['Cash', 'Bank Account', 'E-Money', 'Credit Card'];
-			if (customWallets.includes(row.wallet_type)) {
+			const goalMatch = String(row.wallet_type || '').match(/^Goal:\s*(.+)$/i);
+			if (goalMatch) {
+				const goalTitle = goalMatch[1].trim();
+				const matchedGoal = (window.goals || []).find(g => g.title === goalTitle);
+				if (matchedGoal) {
+					walletTypeSelect.value = `goal__${matchedGoal.goal_id}`;
+				} else {
+					walletTypeSelect.value = 'Other';
+					document.getElementById('trans-wallet-other').value = row.wallet_type;
+					document.getElementById('trans-wallet-other-group').style.display = '';
+				}
+				document.getElementById('trans-wallet-other-group').style.display = 'none';
+			} else if (customWallets.includes(row.wallet_type)) {
 				walletTypeSelect.value = row.wallet_type;
 				document.getElementById('trans-wallet-other-group').style.display = 'none';
 			} else {
@@ -1609,6 +1626,10 @@
                 form.reset();
                 const idInput = document.getElementById('trans-id');
                 if (idInput) idInput.value = '';
+                const goalIdInput = document.getElementById('trans-goal-id');
+                if (goalIdInput) goalIdInput.value = '';
+                const goalInfoDiv = document.getElementById('trans-goal-info');
+                if (goalInfoDiv) goalInfoDiv.style.display = 'none';
 
                 const otherGrp = document.getElementById('trans-wallet-other-group');
                 if (otherGrp) otherGrp.style.display = 'none';
@@ -2527,10 +2548,37 @@ window.handleDeleteGoal = async function(goalId, title) {
 					walletTypeSelect.addEventListener('change', () => {
 						const v = String(walletTypeSelect.value || '').trim();
 						const isOther = v.toLowerCase() === 'other';
+						const isGoal = v.startsWith('goal__');
 						if (walletOtherGroup) walletOtherGroup.style.display = isOther ? '' : 'none';
 						if (walletOtherInput) {
 							walletOtherInput.value = isOther ? walletOtherInput.value : '';
 							walletOtherInput.required = isOther;
+						}
+						// Goal selection: populate hidden field + show progress panel
+						const goalInfoDiv = document.getElementById('trans-goal-info');
+						const goalIdInput = document.getElementById('trans-goal-id');
+						if (isGoal) {
+							const goalId = parseInt(v.replace('goal__', ''), 10);
+							const goal = (window.goals || []).find(g => Number(g.goal_id) === goalId);
+							if (goalIdInput) goalIdInput.value = goalId;
+							if (goalInfoDiv && goal) {
+								const current = Number(goal.current_amount || 0);
+								const target = Number(goal.target_amount || 0);
+								const remaining = Math.max(0, target - current);
+								const pct = target > 0 ? Math.min(100, (current / target) * 100).toFixed(1) : 0;
+								const progressText = document.getElementById('trans-goal-progress-text');
+								const progressBar = document.getElementById('trans-goal-progress-bar');
+								const progressPct = document.getElementById('trans-goal-progress-pct');
+								const remainingEl = document.getElementById('trans-goal-remaining');
+								if (progressText) progressText.textContent = `${goal.title}: ${formatCurrency(current)} / ${formatCurrency(target)}`;
+								if (progressBar) progressBar.style.width = `${pct}%`;
+								if (progressPct) progressPct.textContent = `${pct}%`;
+								if (remainingEl) remainingEl.textContent = `${formatCurrency(remaining)} remaining to reach goal`;
+								goalInfoDiv.style.display = '';
+							}
+						} else {
+							if (goalIdInput) goalIdInput.value = '';
+							if (goalInfoDiv) goalInfoDiv.style.display = 'none';
 						}
 					});
 				}
@@ -2552,9 +2600,15 @@ window.handleDeleteGoal = async function(goalId, title) {
 					
                     let walletType = "";
                     let walletId = null;
+                    let selectedGoalId = null;
 
                     if (walletIdRaw.toLowerCase() === 'other') {
                         walletType = walletOther;
+                        walletId = null;
+                    } else if (walletIdRaw.startsWith('goal__')) {
+                        selectedGoalId = parseInt(walletIdRaw.replace('goal__', ''), 10);
+                        const selectedGoal = (window.goals || []).find(g => Number(g.goal_id) === selectedGoalId);
+                        walletType = selectedGoal ? `Goal: ${selectedGoal.title}` : 'Goal';
                         walletId = null;
                     } else {
                         const selectedOption = document.querySelector(`#trans-wallet-type option[value="${walletIdRaw}"]`);
@@ -2664,8 +2718,20 @@ window.handleDeleteGoal = async function(goalId, title) {
 						resetTransactionForm();
 						hideCoinLoader();
 						closeTransactionModal();
-						await Promise.all([loadTransactions(), loadWallets()]); // Refresh wallet balances
-						showToast(transId ? 'Transaction updated' : 'Transaction saved', 'success');
+						// If a goal was selected, contribute the amount to goal progress
+						if (selectedGoalId && !transId) {
+							try {
+								await fetch('/api/goals', {
+									method: 'PUT',
+									headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+									body: JSON.stringify({ goal_id: selectedGoalId, add_amount: amount, note: description })
+								});
+							} catch (goalErr) {
+								console.error('Failed to update goal after transaction:', goalErr);
+							}
+						}
+						await Promise.all([loadTransactions(), loadWallets(), loadGoals()]); // Refresh all
+						showToast(transId ? 'Transaction updated' : (selectedGoalId ? 'Transaction saved & goal updated! 🎯' : 'Transaction saved'), 'success');
 
 						// Auto-refresh wallet details if viewing a specific wallet
 						const detailsView = document.getElementById('view-wallet-details');
@@ -2808,8 +2874,21 @@ function initializeCustomSelects() {
 		const optionsList = document.createElement('div');
 		optionsList.className = 'custom-select-options';
 		
+		const renderedOptgroups = new Set();
 		Array.from(select.options).forEach(opt => {
 			if (opt.hidden || opt.disabled || opt.value === "") return;
+			// Render optgroup label as a non-clickable header
+			const parentGroup = opt.parentElement;
+			if (parentGroup && parentGroup.tagName === 'OPTGROUP') {
+				const groupLabel = parentGroup.label;
+				if (!renderedOptgroups.has(groupLabel)) {
+					renderedOptgroups.add(groupLabel);
+					const groupHeader = document.createElement('div');
+					groupHeader.className = 'custom-option-group-label';
+					groupHeader.textContent = groupLabel;
+					optionsList.appendChild(groupHeader);
+				}
+			}
 			
 			const optionDiv = document.createElement('div');
 			optionDiv.className = 'custom-option';
