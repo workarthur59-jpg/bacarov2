@@ -99,6 +99,9 @@ async function ensureGoalsSchema() {
     if (!colNames.includes('status')) {
       await sql`ALTER TABLE goals ADD COLUMN status TEXT DEFAULT 'Active'`;
     }
+    if (!colNames.includes('allow_expense')) {
+      await sql`ALTER TABLE goals ADD COLUMN allow_expense BOOLEAN NOT NULL DEFAULT FALSE`;
+    }
   }
 
   // Ensure history table exists
@@ -131,6 +134,7 @@ export default async function handler(req, res) {
           g.current_amount, 
           g.deadline,
           g.status,
+          g.allow_expense,
           g.created_at,
           (
             SELECT json_agg(h) 
@@ -150,7 +154,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { title, target_amount, deadline, category, priority } = req.body;
+      const { title, target_amount, deadline, category, priority, allow_expense } = req.body;
       if (!title || !target_amount) {
         return res.status(400).json({ error: 'Missing title or target amount.' });
       }
@@ -166,9 +170,10 @@ export default async function handler(req, res) {
         }
       }
 
+      const allowExpenseBool = allow_expense === true || allow_expense === 'true';
       const rows = await sql`
-        INSERT INTO goals (account_id, title, target_amount, deadline, category, priority)
-        VALUES (${account.acc_id}, ${title}, ${target_amount}, ${deadline || null}, ${category || 'Savings'}, ${priority || 1})
+        INSERT INTO goals (account_id, title, target_amount, deadline, category, priority, allow_expense)
+        VALUES (${account.acc_id}, ${title}, ${target_amount}, ${deadline || null}, ${category || 'Savings'}, ${priority || 1}, ${allowExpenseBool})
         RETURNING *
       `;
 
@@ -177,8 +182,9 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { goal_id, add_amount, note } = req.body;
-      if (!goal_id || !add_amount) {
-        return res.status(400).json({ error: 'Missing goal_id or amount to add.' });
+      // allow negative add_amount (expense withdrawals from goal)
+      if (!goal_id || add_amount == null || !Number.isFinite(Number(add_amount))) {
+        return res.status(400).json({ error: 'Missing goal_id or valid amount.' });
       }
 
       // 1. Update Goal Amount

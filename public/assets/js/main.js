@@ -162,6 +162,9 @@
 			const form = document.getElementById('add-goal-form');
 			if (!form) return;
 			form.reset();
+			// Uncheck allow_expense
+			const allowExpenseCb = document.getElementById('goal-allow-expense');
+			if (allowExpenseCb) allowExpenseCb.checked = false;
 			
 			// Reset Flatpickr to tomorrow
 			if (goalDatePicker) {
@@ -501,7 +504,7 @@
 				const activeGoals = (window.goals || []).filter(g => Number(g.current_amount || 0) < Number(g.target_amount || 0));
 				const walletOptgroup = options ? `<optgroup label="Wallets">${options}</optgroup>` : options;
 				const goalOpts = activeGoals.length > 0
-					? `<optgroup label="Savings Goals">${activeGoals.map(g => `<option value="goal__${g.goal_id}" data-goal-id="${g.goal_id}">${escapeHtml(g.title)}</option>`).join('')}</optgroup>`
+					? `<optgroup label="Savings Goals">${activeGoals.map(g => `<option value="goal__${g.goal_id}" data-goal-id="${g.goal_id}" data-allow-expense="${g.allow_expense ? 'true' : 'false'}">${escapeHtml(g.title)}${!g.allow_expense ? ' (income only)' : ''}</option>`).join('')}</optgroup>`
 					: '';
 				transWallet.innerHTML = `<option value="" selected disabled hidden></option>${walletOptgroup}${goalOpts}<option value="Other">Other</option>`;
 			}
@@ -2132,6 +2135,7 @@ window.handleDeleteGoal = async function(goalId, title) {
 					const deadline = document.getElementById('goal-deadline').value;
 					const category = document.getElementById('goal-category').value;
 					const priority = parseInt(document.getElementById('goal-priority').value, 10);
+					const allow_expense = document.getElementById('goal-allow-expense')?.checked === true;
 					
 					const messageDiv = document.getElementById('add-goal-message');
 					messageDiv.innerHTML = '';
@@ -2161,7 +2165,7 @@ window.handleDeleteGoal = async function(goalId, title) {
 						const res = await fetch('/api/goals', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-							body: JSON.stringify({ title, target_amount, deadline, category, priority })
+							body: JSON.stringify({ title, target_amount, deadline, category, priority, allow_expense })
 						});
 						
 						const payload = await readResponsePayload(res);
@@ -2566,19 +2570,74 @@ window.handleDeleteGoal = async function(goalId, title) {
 								const target = Number(goal.target_amount || 0);
 								const remaining = Math.max(0, target - current);
 								const pct = target > 0 ? Math.min(100, (current / target) * 100).toFixed(1) : 0;
+								const currentType = document.getElementById('trans-type')?.value;
 								const progressText = document.getElementById('trans-goal-progress-text');
 								const progressBar = document.getElementById('trans-goal-progress-bar');
 								const progressPct = document.getElementById('trans-goal-progress-pct');
 								const remainingEl = document.getElementById('trans-goal-remaining');
+								const noteEl = goalInfoDiv.querySelector('.goal-tx-note');
 								if (progressText) progressText.textContent = `${goal.title}: ${formatCurrency(current)} / ${formatCurrency(target)}`;
 								if (progressBar) progressBar.style.width = `${pct}%`;
 								if (progressPct) progressPct.textContent = `${pct}%`;
-								if (remainingEl) remainingEl.textContent = `${formatCurrency(remaining)} remaining to reach goal`;
+								if (remainingEl) remainingEl.textContent = currentType === 'Expense'
+									? `${formatCurrency(current)} available to withdraw`
+									: `${formatCurrency(remaining)} remaining to reach goal`;
+								if (noteEl) noteEl.textContent = currentType === 'Expense'
+									? 'This amount will be withdrawn from your goal balance.'
+									: 'This transaction amount will be applied to your goal progress.';
 								goalInfoDiv.style.display = '';
 							}
 						} else {
 							if (goalIdInput) goalIdInput.value = '';
 							if (goalInfoDiv) goalInfoDiv.style.display = 'none';
+						}
+					});
+				}
+
+				// Filter goal options when transaction type changes
+				const transTypeSelect = document.getElementById('trans-type');
+				if (transTypeSelect) {
+					transTypeSelect.addEventListener('change', () => {
+						const selectedType = transTypeSelect.value;
+						// Update custom select option visibility for goals
+						const wrapper = walletTypeSelect?.closest('.custom-select-wrapper');
+						if (wrapper) {
+							wrapper.querySelectorAll('.custom-option[data-allow-expense]').forEach(optEl => {
+								const allowed = optEl.getAttribute('data-allow-expense') === 'true';
+								optEl.style.display = (selectedType === 'Expense' && !allowed) ? 'none' : '';
+							});
+							// Also show/hide the group header
+							wrapper.querySelectorAll('.custom-option-group-label').forEach(hdr => {
+								if (hdr.textContent === 'Savings Goals') {
+									const anyVisible = [...wrapper.querySelectorAll('.custom-option[data-allow-expense]')].some(el => el.style.display !== 'none');
+									hdr.style.display = anyVisible ? '' : 'none';
+								}
+							});
+						}
+						// Also hide native options that shouldn't be selectable
+						if (walletTypeSelect) {
+							Array.from(walletTypeSelect.querySelectorAll('option[data-allow-expense]')).forEach(opt => {
+								const allowed = opt.getAttribute('data-allow-expense') === 'true';
+								opt.disabled = selectedType === 'Expense' && !allowed;
+							});
+						}
+						// If current selection is a now-blocked goal, reset it
+						const curVal = walletTypeSelect?.value || '';
+						if (curVal.startsWith('goal__')) {
+							const curOpt = walletTypeSelect.querySelector(`option[value="${curVal}"]`);
+							if (curOpt && curOpt.getAttribute('data-allow-expense') === 'false' && selectedType === 'Expense') {
+								walletTypeSelect.value = '';
+								const triggerSpan = wrapper?.querySelector('.custom-select-trigger span');
+								if (triggerSpan) triggerSpan.textContent = '';
+								const goalInfoDiv = document.getElementById('trans-goal-info');
+								if (goalInfoDiv) goalInfoDiv.style.display = 'none';
+								const goalIdInput = document.getElementById('trans-goal-id');
+								if (goalIdInput) goalIdInput.value = '';
+							}
+						}
+						// Re-fire wallet change to refresh note text if still on a goal
+						if (walletTypeSelect?.value?.startsWith('goal__')) {
+							walletTypeSelect.dispatchEvent(new Event('change'));
 						}
 					});
 				}
@@ -2669,6 +2728,17 @@ window.handleDeleteGoal = async function(goalId, title) {
 						}
 					}
 
+					// Goal balance check for expense type
+					if (selectedGoalId && type === 'Expense') {
+						const goalForCheck = (window.goals || []).find(g => Number(g.goal_id) === selectedGoalId);
+						if (goalForCheck) {
+							const goalBalance = Number(goalForCheck.current_amount || 0);
+							if (goalBalance < amount) {
+								errors.push(`Insufficient goal balance in "${goalForCheck.title}" (Available: ${formatCurrency(goalBalance)})`);
+							}
+						}
+					}
+
 					if (errors.length > 0) {
 						if (messageDiv) {
 							messageDiv.innerHTML = escapeHtml(errors[0]);
@@ -2721,10 +2791,12 @@ window.handleDeleteGoal = async function(goalId, title) {
 						// If a goal was selected, contribute the amount to goal progress
 						if (selectedGoalId && !transId) {
 							try {
+								// Expense = withdraw from goal (negative), Income = add to goal (positive)
+								const goalContribAmount = type === 'Expense' ? -amount : amount;
 								await fetch('/api/goals', {
 									method: 'PUT',
 									headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-									body: JSON.stringify({ goal_id: selectedGoalId, add_amount: amount, note: description })
+									body: JSON.stringify({ goal_id: selectedGoalId, add_amount: goalContribAmount, note: description })
 								});
 							} catch (goalErr) {
 								console.error('Failed to update goal after transaction:', goalErr);
@@ -2897,6 +2969,8 @@ function initializeCustomSelects() {
 			if (i18nKey) optionDiv.setAttribute('data-i18n', i18nKey);
 			const dot = opt.getAttribute('data-dot');
 			if (dot) optionDiv.setAttribute('data-dot', dot);
+			const allowExpAttr = opt.getAttribute('data-allow-expense');
+			if (allowExpAttr !== null) optionDiv.setAttribute('data-allow-expense', allowExpAttr);
 			optionDiv.innerText = dict(opt.text.trim());
 			
 			optionDiv.addEventListener('click', (e) => {
